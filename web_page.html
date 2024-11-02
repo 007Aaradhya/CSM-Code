@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Aaradhya's User Management</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        input {
+            padding: 8px;
+            margin-right: 10px;
+            width: 200px;
+        }
+        button {
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        .error {
+            color: red;
+            padding: 10px;
+            background-color: #ffe6e6;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: green;
+            padding: 10px;
+            background-color: #e6ffe6;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .user-table th, .user-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .user-table th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>User Management System</h1>
+        <div class="form-group">
+            <input type="text" id="userId" placeholder="User ID" required>
+            <input type="email" id="userEmail" placeholder="Email" required>
+            <button onclick="createUser()">Create User</button>
+            <button onclick="getUsers()">Get Users</button>
+        </div>
+        <div id="status"></div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_URL = 'https://nifcpvpb21.execute-api.ap-south-1.amazonaws.com/aaradhya-prod';
+        
+        function showMessage(message, isError = false) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = `<div class="${isError ? 'error' : 'success'}">${message}</div>`;
+        }
+
+        async function createUser() {
+            const userId = document.getElementById('userId').value.trim();
+            const email = document.getElementById('userEmail').value.trim();
+
+            if (!userId || !email) {
+                showMessage('Please fill in all fields', true);
+                return;
+            }
+
+            try {
+                const response = await axios.post(`${API_URL}/users`, {
+                    user_id: userId,
+                    email: email
+                });
+                showMessage('User created successfully!');
+                document.getElementById('userId').value = '';
+                document.getElementById('userEmail').value = '';
+                getUsers(); // Refresh the list
+            } catch (error) {
+                console.error('Error details:', error);
+                showMessage(`Error: ${error.response?.data?.message || 'Failed to create user'}`, true);
+            }
+        }
+
+        async function getUsers() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                const response = await axios.get(`${API_URL}/users`);
+                console.log('API Response:', response.data); // Debug log
+                
+                if (response.data && response.data.Items && response.data.Items.length > 0) {
+                    // Create table
+                    let tableHtml = `
+                        <table class="user-table">
+                            <tr>
+                                <th>User ID</th>
+                                <th>Email</th>
+                                <th>Created At</th>
+                            </tr>
+                    `;
+                    
+                    response.data.Items.forEach(user => {
+                        tableHtml += `
+                            <tr>
+                                <td>${user.user_id}</td>
+                                <td>${user.email}</td>
+                                <td>${user.createdAt || 'N/A'}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    tableHtml += '</table>';
+                    resultDiv.innerHTML = tableHtml;
+                } else {
+                    resultDiv.innerHTML = '<p>No users found</p>';
+                }
+                
+            } catch (error) {
+                console.error('Error details:', error);
+                showMessage(`Error: ${error.response?.data?.message || 'Failed to fetch users'}`, true);
+            }
+        }
+
+        // Load users when page loads
+        window.onload = getUsers;
+    </script>
+</body>
+</html>
